@@ -1,12 +1,13 @@
 // Macro name: Protein_Intensity.ijm
 // Quantifies intensity of your protein of interest in every z-plane
 // Author: Gabriel Kreider and Madeline Lovejoy
-// Date: 2026-01-10
+// Date: 2026-07-08
 // Fiji version: 1.54p
 
 // Bio-Formats version: 8.1.1
 
-// When first running the code, the steps after the batch processing should be executed manually so the thresholding values can be adjusted per experiment
+// ***IMPORTANT*** When first running the code, lines 35 to 81 should be executed on an open CTRL image so the thresholding values can be adjusted for each experiment
+// Add the adjusted threshold values from Test Run to line 107 before running the whole code for experimental analysis
 
 // Batch processing - choose input and output directory
 #@ File (label = "Input directory", style = "directory") input
@@ -32,7 +33,7 @@ function processFile(input, output, file) {
 // Open images - series 1 
 run("Bio-Formats Importer", "open=[" + input + "/" + file +"] autoscale color_mode=Default rois_import=[ROI manager] view=Hyperstack stack_order=XYCZT series_1");
 
-// Renames the image to match the original file name
+// ***TEST RUN FOR THRESHOLD SETTING STARTS HERE*** Renames the image to match the original file name
 name = getInfo("image.filename");
 rename(name);
 
@@ -47,8 +48,9 @@ for (c=0 ; c<roiManager("count"); c++) {
 		// Duplicates the cyst ROI and splits channels into individual images
 		run("Duplicate...", "title=Image duplicate");
 		run("Split Channels");
-		// The user should change "C3" (channel 3) to whichever channel has staining for the protein of interest 
+		// ***CHANGE HERE*** The user should change "C3" (channel 3) to whichever channel has staining for the protein of interest 
 		selectWindow("C3-Image");
+		// ***END CHANGE***
 		rename("Image2");
 
 // Get the active ROI name
@@ -57,6 +59,7 @@ rName = Roi.getName;
 
 // Protein intensity quantification
 selectWindow("Image2");
+run("Select None");
 // Background subtraction and intensity calculations require the image to be 32-bit
 run("32-bit");
 
@@ -75,6 +78,8 @@ run("32-bit");
       }
      
 run("Select None");
+// *** END TEST RUN - MANUALLY SET THRESHOLD HERE TO DETERMINE CTRL THRESHOLD FOR EACH EXPERIMENT***
+// Image > Adjust > Threshold...
 
 run("Duplicate...", "title=[Binary Mask] duplicate");
 
@@ -85,7 +90,6 @@ setAutoThreshold("Default dark");
 // Sets a threshold to determine where signal exists
 // These values can stay the same across all experiments and conditions
 setThreshold(10, 65535);
-
 setOption("BlackBackground", true);
 // Signal = 255, background = 0
 run("Convert to Mask", "method=Default background=Dark black");
@@ -95,29 +99,29 @@ run("Divide...", "value=255 stack");
 // Combines mask and original image
 // Keeps the original signal values only where the mask exists
 imageCalculator("Multiply create 32-bit stack", "Binary Mask","Image2");
-
-
 setAutoThreshold("Default dark no-reset");
-// These values will need to be adjusted per experiment per protein of interest
-// Final threshold removes any residual background or autofluorescence within the mask
-setThreshold(103.88, 1e30);
 
+// ***CHANGE HERE - put minimum and maximum values from Test Run here***
+//These values will need to be adjusted per experiment per protein of interest
+// Final threshold removes any residual background or autofluorescence within the mask
+setThreshold(81.53, 1e30);
+// ***END CHANGE***
 setOption("BlackBackground", true);
 
 //Converts pixels that do not have signal to NaN to exclude from measurements
 run("NaN Background", "stack");
 
-// Sets any units to pixels so intensity measurements are consistent across all images
+// Sets units to pixels so intensity measurements are consistent across all images
 run("Set Scale...", "distance=0 known=0 pixel=1 unit=pixel");
 
 // Setting measurements to measure the sum integrated density (intensity) of each slice in the z-stack
 run("Set Measurements...", "area mean integrated redirect=None decimal=3");	
 run("Measure Stack...");
 
-
 // Save the results in output folder as a csv with the image name
-// The user should replace "EcadInt" with whatever the protein of interest is
+// ***CHANGE HERE*** The user should replace "EcadInt" with whatever the protein of interest is
 saveAs("Results", output + "/"  + name + "_" + rName + "EcadInt" + ".csv" );
+// ***END CHANGE***
 
 // Close everything
 if (isOpen("Result of Binary Mask")) close("Result of Binary Mask");
