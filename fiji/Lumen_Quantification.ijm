@@ -1,7 +1,7 @@
 // Macro name: Lumen_Quantification.ijm
 // Quantifies volume and surface area for individual lumens
 // Author: Madeline Lovejoy
-// Date: 2026-01-09
+// Date: 2026-07-08
 // Fiji version: 1.54p
 
 // Bio-Formats version: 8.1.1
@@ -45,7 +45,7 @@ for (c=0 ; c<roiManager("count"); c++) {
 
 		run("Duplicate...", "title=Image duplicate");
 		run("Split Channels");
-		// Pick whichever channel has gp135/apical staining - C2 is an example 
+		// ***MODIFY HERE*** Pick whichever channel has gp135/apical staining - C2 is an example 
 		selectWindow("C2-Image");
 		rename("Image4");
 
@@ -56,17 +56,18 @@ rName = Roi.getName;
 // Lumen Quantification with gp135 channel
 selectWindow("Image4");
 rename("Image");
+run("select None");
 run("Gaussian Blur...", "sigma=2 stack");
-// Set threshold only heavy enough to make sure that the lumen has a continuous perimeter
+// Set threshold ONLY heavy enough to make sure that the lumen has a continuous perimeter
 setAutoThreshold("Mean dark no-reset");
 run("Threshold...");
-waitForUser("set threshold");
+waitForUser("set threshold ONLY heavy enough for continuous lumen perimeter, then click OK");
 setOption("BlackBackground", true);
 run("Convert to Mask", "method=Mean background=Dark black");
 run("Fill Holes", "stack");
 run("3D Objects Counter");
 
-// Save the results in output folder as a csv with the image name
+// Save the results in output folder as a csv with the image name + LumenQuant.csv
 selectWindow("Statistics for Image");
 saveAs("Results", output + "/"  + name + "_" + rName + "LumenQuant" + ".csv" );
 
