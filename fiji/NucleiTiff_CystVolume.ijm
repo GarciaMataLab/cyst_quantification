@@ -1,7 +1,8 @@
-// Macro name: Nuclei_Cyst_Volume.ijm
+// Macro name: NucleiTiff_CystVolume.ijm
+// Prepares tif images of the nuclei channel for subsequent nuclei quantification in napari
 // Quantifies overall cyst volume from Hoechst/DAPI-stained cyst z-stack images
 // Author: Madeline Lovejoy
-// Date: 2026-01-09
+// Date: 2026-07-08
 // Fiji version: 1.54p
 
 // Bio-Formats version: 8.1.1
@@ -38,41 +39,44 @@ rename(name);
 
 waitForUser("draw ROI around each cyst, add to manager, then click OK");
 
-// Goes through each ROI
+// Goes through each ROI and splits channels into separate windows
 for (c=0 ; c<roiManager("count"); c++) {
 		selectWindow(name);
 		roiManager("select", c);
 
 		run("Duplicate...", "title=Image duplicate");
 		run("Split Channels");
-		// Pick whichever channel has nuclei staining - C3 is an example 
-		selectWindow("C3-Image");
+		// *** MODIFY HERE *** Pick whichever channel has nuclei staining - C1 is an example
+		selectWindow("C1-Image");
 		rename("Image");
 
 // Get the active ROI name
 roiManager("select", c);
 rName = Roi.getName;
 
-// Save image as a tif for Napari nucleus quantification
+// Save image as a tif for napari nucleus quantification
 selectWindow("Image");
 run("Select None");
 run("Duplicate...", "title=Image duplicate");
+// Will save with the same name as the original image with Nuclei.tif added to the end
 saveAs("Tiff", output + "/" + name + "_" + rName + "Nuclei" + ".tif");
 close("Image duplicate");
 
 // Cyst volume quantification with nucleus channel
-selectWindow("Image");		
+selectWindow("Image");	
+// Smooths image by a radius of 2 pixels
 run("Gaussian Blur...", "sigma=2 stack");
 // Set threshold as heavy as possible without picking up background
 setAutoThreshold("Mean dark no-reset");
 run("Threshold...");
-waitForUser("set threshold");
+waitForUser("set threshold heavy and click OK");
 setOption("BlackBackground", true);
 run("Convert to Mask", "method=Mean background=Dark black");
 run("Fill Holes", "stack");
-run("3D Objects Counter", "threshold=1 slice=100 min.=100 max.=9000000 objects statistics summary");
+// Minimum and maximum threshold values for 3D Objects Counter and based on cyst
+run("3D Objects Counter", "threshold=1 min.=100 max.=900000000 objects statistics summary");
 
-// Save the results in output folder as a csv with the image name
+// Save the results in output folder as a csv with the image name + CystVol.csv
 selectWindow("Statistics for Image");
 saveAs("Results", output + "/"  + name + "_" + rName + "CystVol" + ".csv" );
 if (isOpen("Objects map of Image")) close("Objects map of Image");
